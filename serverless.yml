@@ -1,0 +1,55 @@
+# Welcome to Serverless!
+#
+# This file is the main config file for your service.
+# It's very minimal at this point and uses default values.
+# You can always add more config options for more control.
+# We've included some commented out config examples here.
+# Just uncomment any of them to get that config option.
+#
+# For full config options, check the docs:
+#    docs.serverless.com
+#
+# Happy Coding!
+
+service: apigw
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+custom:
+  stage: ${opt:stage, self:provider.stage}
+
+
+functions:
+  public:
+    handler: handler.public
+    events:
+      - http:
+          path: public
+          method: get
+  secure:
+    handler: handler.secure
+    events:
+      - http:
+          path: secure
+          method: get
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayAuthorizer
+resources:
+  - Resources:
+      ApiGatewayAuthorizer:
+        DependsOn:
+          - ApiGatewayRestApi
+        Type: AWS::ApiGateway::Authorizer
+        Properties:
+          Name: cognito-authorizer
+          IdentitySource: method.request.header.Authorization
+          RestApiId:
+            Ref: ApiGatewayRestApi
+          Type: COGNITO_USER_POOLS
+          ProviderARNs:
+            - Fn::GetAtt: [CognitoUserPool, Arn]
+  - ${file(resources/cognito-user-pool.yml)}
+  - ${file(resources/cognito-identity-pool.yml)}
